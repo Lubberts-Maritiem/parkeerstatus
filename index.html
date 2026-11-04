@@ -160,11 +160,14 @@
   function naarStilbeeld() {
     beeld.classList.add('stil');
     $('badgetekst').textContent = 'Stilstaand beeld';
-    $('bijschrift').textContent = laatste?.beeld
-      ? 'De livestream is even niet bereikbaar. Je ziet het beeld van de laatste meting.'
-      : 'De livestream is even niet bereikbaar.';
-    if (laatste?.beeld) $('stilbeeld').src = laatste.beeld;
+    $('bijschrift').textContent = 'De livestream speelt hier niet af. Je ziet een recent stilstaand beeld, dat elke minuut ververst.';
+    ververStilbeeld();
   }
+  function ververStilbeeld() {
+    // Server-side frame, door Vercel 60 s gecachet. Werkt ook als de browser HLS niet aankan.
+    $('stilbeeld').src = `/api/frame?m=${Math.floor(Date.now() / 60000)}`;
+  }
+  setInterval(() => { if (beeld.classList.contains('stil')) ververStilbeeld(); }, 60000);
   function naarLive() {
     beeld.classList.remove('stil');
     $('badgetekst').textContent = 'Live';
@@ -224,7 +227,6 @@
 
     $('gemeten').textContent = s.gemeten_op ? `Gemeten ${geleden(s.gemeten_op)}` : '';
     $('volgende').textContent = s.interval_s ? `ververst elke ${Math.round(s.interval_s / 60)} min` : '';
-    if (beeld.classList.contains('stil') && s.beeld) $('stilbeeld').src = s.beeld;
   }
 
   function bewaar(s) { try { localStorage.setItem(OPSLAG, JSON.stringify(s)); } catch {} }

@@ -1,11 +1,10 @@
 // GET /api/status
-// Meet de parkeerdrukte. Vercel's CDN bewaart het antwoord een paar minuten,
-// dus hoeveel bezoekers er ook zijn: de meting draait hooguit eens per interval.
+// Haalt het oordeel op bij de Cloudflare Worker en laat Vercel's CDN het een paar
+// minuten bewaren. Hoeveel bezoekers er ook zijn: de Worker wordt hooguit eens per
+// interval aangeroepen, en de Worker remt zelf ook nog af.
 
-import { beeldenVoorMeting } from '../lib/camera.js';
-import { beoordeel, niveau } from '../lib/oordeel.js';
-
-const INTERVAL_DAG = Number(process.env.MEET_INTERVAL_SEC || 240);  // 4 minuten
+const WORKER_URL = process.env.WORKER_URL || 'https://parkeerstatus-ai.WORKERS_SUBDOMEIN.workers.dev/status';
+const INTERVAL_DAG = Number(process.env.MEET_INTERVAL_SEC || 240);   // 4 minuten
 const INTERVAL_NACHT = Number(process.env.NACHT_INTERVAL_SEC || 1800); // 30 minuten
 const NACHT_VAN = Number(process.env.NACHT_VAN || 23);
 const NACHT_TOT = Number(process.env.NACHT_TOT || 6);
@@ -26,22 +25,16 @@ export default async function handler(req, res) {
   const interval = isNacht(nu) ? INTERVAL_NACHT : INTERVAL_DAG;
 
   try {
-    const { metReferentie, beoordeling, voorbeeld } = await beeldenVoorMeting();
-    const oordeel = await beoordeel(beoordeling, metReferentie);
-
-    res.setHeader('Cache-Control', `public, max-age=0, s-maxage=${interval}, stale-while-revalidate=${interval * 3}`);
-    res.status(200).json({
-      ok: true,
-      niveau: niveau(oordeel),
-      ...oordeel,
-      met_referentie: metReferentie,
-      gemeten_op: nu.toISOString(),
-      interval_s: interval,
-      beeld: `data:image/jpeg;base64,${voorbeeld.toString('base64')}`,
-    });
+    const r = await fetch(WORKER_URL, { signal: AbortSignal.timeout(50000) });
+    const data = await r.json();
+    const ok = r.ok && data?.ok === true;
+    res.setHeader(
+      'Cache-Control',
+      ok ? `public, max-age=0, s-maxage=${interval}, stale-while-revalidate=${interval * 3}` : 'public, max-age=0, s-maxage=60'
+    );
+    res.status(200).json({ ...data, ok, interval_s: ok ? interval : 60 });
   } catch (fout) {
-    // Status 200 met ok:false, zodat ook een storing kort gecachet wordt
-    // en niet elke bezoeker een nieuwe poging start.
+    // Status 200 met ok:false, zodat ook een storing kort gecachet wordt.
     res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60');
     res.status(200).json({
       ok: false,
