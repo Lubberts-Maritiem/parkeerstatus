@@ -7,8 +7,8 @@
 // hij de vorige uitkomst terug. Zo blijft het gratis dagtegoed veilig.
 
 const BEELD_URL = 'https://parkeerstatus.vercel.app/api/beeld';
-const MODELLEN = ['@cf/google/gemma-4-26b-a4b-it', '@cf/meta/llama-4-scout-17b-16e-instruct'];
-const MIN_INTERVAL_MS = 150_000;
+const MODELLEN = ['@cf/meta/llama-4-scout-17b-16e-instruct'];
+const MIN_INTERVAL_MS = 280_000; // ~28 neurons per meting: max ~310 per dag = ~8.700 neurons
 
 const PROMPT_MET_REFERENTIE = `You are looking at a webcam image of a public car park on a harbour quay (Veerhavenplein, West-Terschelling, the Netherlands).
 The image is a composite of three photos from the same fixed camera:
@@ -111,7 +111,7 @@ async function meet(env) {
         ],
       });
       const oordeel = leesAntwoord(tekstUit(out));
-      return { ok: true, niveau: niveau(oordeel), ...oordeel, model, met_referentie: metReferentie };
+      return { ok: true, niveau: niveau(oordeel), ...oordeel, model, met_referentie: metReferentie, opmerking: fouten.length ? fouten.join(' | ') : undefined };
     } catch (e) {
       fouten.push(`${model.split('/').pop()}: ${String(e?.message || e).slice(0, 140)}`);
     }

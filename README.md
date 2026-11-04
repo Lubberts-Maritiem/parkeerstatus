@@ -5,7 +5,7 @@ Indicatieve parkeerdrukte op het Veerhavenplein, West-Terschelling. Volledig gra
 ## Hoe het werkt
 
 ```
-bezoeker ─► index.html ─► /api/status (Vercel, CDN-cache 4 min)
+bezoeker ─► index.html ─► /api/status (Vercel, CDN-cache 5 min)
                                │
                                ▼
                     Cloudflare Worker (AI-binding)
@@ -16,9 +16,9 @@ bezoeker ─► index.html ─► /api/status (Vercel, CDN-cache 4 min)
 ```
 
 1. `index.html` toont de livestream en een statuskaart: rustig, gemiddeld, druk of vol.
-2. `/api/status` vraagt het oordeel op bij de Worker. Vercel's CDN bewaart het 4 minuten, 's nachts (23:00 tot 06:00) 30 minuten.
+2. `/api/status` vraagt het oordeel op bij de Worker. Vercel's CDN bewaart het 5 minuten, 's nachts (23:00 tot 06:00) 30 minuten.
 3. De Worker haalt `/api/beeld` op: het actuele frame, met de referentiefoto's leeg en vol erboven als die er zijn. Een vision-model zegt waar het beeld zit tussen leeg (0) en vol (100).
-4. De Worker gebruikt de **AI-binding** van Cloudflare, dus geen token. Hij accepteert geen eigen invoer, haalt alleen het beeld van de vaste Vercel-URL, en meet hooguit eens per 2,5 minuut. Zo kan niemand je gratis tegoed opmaken.
+4. De Worker gebruikt de **AI-binding** van Cloudflare, dus geen token. Hij accepteert geen eigen invoer, haalt alleen het beeld van de vaste Vercel-URL, en meet hooguit eens per 4 minuten en 40 seconden. Zo kan niemand je gratis tegoed opmaken.
 5. Speelt de livestream niet af, dan toont de pagina een stilstaand frame via `/api/frame` dat elke minuut ververst. Mislukt een meting, dan blijft de laatste geslaagde meting staan met een melding.
 
 ## Onderdelen
@@ -53,7 +53,7 @@ Kies daglicht en goed zicht. Verandert de camerahoek, maak dan nieuwe.
 |---|---|---|
 | `WORKER_URL` | in `api/status.js` | Adres van de Worker |
 | `STREAM_URL` | Veerkade-stream | HLS-playlist van de camera |
-| `MEET_INTERVAL_SEC` | `240` | Cache-duur overdag |
+| `MEET_INTERVAL_SEC` | `300` | Cache-duur overdag |
 | `NACHT_INTERVAL_SEC` | `1800` | Cache-duur 's nachts |
 | `NACHT_VAN` / `NACHT_TOT` | `23` / `6` | Nachtvenster (Nederlandse tijd) |
 
@@ -61,7 +61,8 @@ Niveaus: rustig < 35%, gemiddeld < 65%, druk < 85%, vol vanaf 85%. Bij slecht zi
 
 ## Gratis blijven
 
-- **Cloudflare:** 10.000 neurons per dag gratis. Kijk na de eerste dag bij *Workers AI* hoeveel er verbruikt is. Te veel? Verhoog `MIN_INTERVAL_MS` in de Worker en `MEET_INTERVAL_SEC` in Vercel.
+- **Cloudflare:** 10.000 neurons per dag gratis. Gemeten op 4 november: een meting met Llama 4 Scout kost ongeveer 28 neurons. Met 5 minuten overdag en 30 minuten 's nachts is dat hooguit zo'n 6.000 per dag. De rem in de Worker (280 s) houdt het ook in het slechtste geval onder de 8.700. Verbruik staat bij *Workers AI → Usage*.
+- Gemma 4 (`@cf/google/gemma-4-26b-a4b-it`) gaf geen bruikbaar JSON-antwoord en is daarom uit de modellijst gehaald.
 - **Vercel Hobby** is voor niet-commercieel gebruik. Gaat de site geld verdienen, dan is Pro nodig.
 
 ## Bekende valkuil (al opgelost)
