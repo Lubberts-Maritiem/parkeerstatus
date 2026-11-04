@@ -121,24 +121,61 @@ async function meet(env) {
   throw new Error(fouten.join(' | '));
 }
 
+// Rem in twee lagen, zodat het gratis dagtegoed niet opraakt:
+// 1. het geheugen van dit exemplaar van de Worker (snel, kost niets);
+// 2. Workers KV (binding CACHE), gedeeld door alle exemplaren. Een kort 'slot' voorkomt
+//    dat twee exemplaren die tegelijk binnenkomen allebei gaan meten.
+// Zonder CACHE-binding werkt de Worker ook, dan alleen met laag 1.
+const SLOT_MS = 90_000;
 let laatste = null; // { t, body }
 let bezig = null;
 
+const vers = (m, nu) => !!m && nu - m.t < MIN_INTERVAL_MS;
+
+function antwoord(body) {
+  return new Response(JSON.stringify(body), {
+    headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
+  });
+}
+
+async function kvLees(env, sleutel, type) {
+  try {
+    return env.CACHE ? await env.CACHE.get(sleutel, type) : null;
+  } catch {
+    return null;
+  }
+}
+
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname !== '/' && url.pathname !== '/status') return new Response('Niet gevonden', { status: 404 });
 
     const nu = Date.now();
-    if (!laatste || nu - laatste.t >= MIN_INTERVAL_MS) {
-      const p = (bezig ??= meet(env)
-        .then((res) => ({ t: Date.now(), body: { ...res, gemeten_op: new Date().toISOString() } }))
-        .catch((e) => ({ t: Date.now() - MIN_INTERVAL_MS + 60_000, body: { ok: false, niveau: 'onbekend', fout: String(e?.message || e).slice(0, 400), gemeten_op: new Date().toISOString() } }))
-        .finally(() => { bezig = null; }));
-      laatste = await p;
+    if (vers(laatste, nu)) return antwoord(laatste.body);
+
+    const gedeeld = await kvLees(env, 'laatste', 'json');
+    if (vers(gedeeld, nu)) {
+      laatste = gedeeld;
+      return antwoord(gedeeld.body);
     }
-    return new Response(JSON.stringify(laatste.body), {
-      headers: { 'content-type': 'application/json; charset=utf-8', 'cache-control': 'no-store' },
-    });
+
+    if (env.CACHE && !bezig) {
+      const slot = Number(await kvLees(env, 'slot', 'text')) || 0;
+      if (gedeeld && nu - slot < SLOT_MS) return antwoord(gedeeld.body); // een ander exemplaar meet al
+      try {
+        await env.CACHE.put('slot', String(nu), { expirationTtl: 120 });
+      } catch {
+        /* geen slot, dan meten we gewoon */
+      }
+    }
+
+    const p = (bezig ??= meet(env)
+      .then((res) => ({ t: Date.now(), body: { ...res, gemeten_op: new Date().toISOString() } }))
+      .catch((e) => ({ t: Date.now() - MIN_INTERVAL_MS + 60_000, body: { ok: false, niveau: 'onbekend', fout: String(e?.message || e).slice(0, 400), gemeten_op: new Date().toISOString() } }))
+      .finally(() => { bezig = null; }));
+    laatste = await p;
+    if (env.CACHE) ctx?.waitUntil?.(env.CACHE.put('laatste', JSON.stringify(laatste), { expirationTtl: 86400 }).catch(() => {}));
+    return antwoord(laatste.body);
   },
 };

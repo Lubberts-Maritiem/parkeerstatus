@@ -35,7 +35,7 @@ bezoeker ─► index.html ─► /api/status (Vercel, CDN-cache 5 min)
 
 ## Worker aanpassen
 
-De Worker staat in Cloudflare onder **Workers & Pages → parkeerstatus-ai**. Wijzig je `worker/worker.js`, plak de nieuwe code dan via **Edit code** en klik **Deploy**. De Worker heeft één binding nodig: **Workers AI**, variabelenaam `AI`.
+De Worker staat in Cloudflare onder **Workers & Pages → parkeerstatus-ai**. Wijzig je `worker/worker.js`, plak de nieuwe code dan via **Edit code** en klik **Deploy**. De Worker heeft twee bindings: **Workers AI** (variabelenaam `AI`) en **KV namespace** `parkeerstatus-cache` (variabelenaam `CACHE`). Via KV delen alle exemplaren van de Worker de laatste meting, zodat er nooit dubbel gemeten wordt. Zonder `CACHE` werkt de Worker ook, maar dan remt elk exemplaar alleen zichzelf.
 
 ## Masker
 
@@ -65,7 +65,8 @@ Niveaus: rustig < 35%, gemiddeld < 65%, druk < 85%, vol vanaf 85%. Bij slecht zi
 
 ## Gratis blijven
 
-- **Cloudflare:** 10.000 neurons per dag gratis. Gemeten op 4 november: een meting met Llama 4 Scout kost ongeveer 28 neurons. Met 5 minuten overdag en 30 minuten 's nachts is dat hooguit zo'n 6.000 per dag. De rem in de Worker (280 s) houdt het ook in het slechtste geval onder de 8.700. Verbruik staat bij *Workers AI → Usage*.
+- **Cloudflare:** 10.000 neurons per dag gratis. Gemeten op 4 november: een meting met Llama 4 Scout kost ongeveer 28 neurons. Met 5 minuten overdag en 30 minuten 's nachts is dat hooguit zo'n 6.000 per dag. De rem in de Worker (280 s) houdt het ook in het slechtste geval onder de 8.700. Verbruik staat bij *Workers AI → Usage*. KV gebruikt ongeveer 2 schrijfacties per meting, ruim binnen de gratis 1.000 per dag.
+- Let op: elke keer dat je de Worker-editor in het dashboard opent, voert het voorbeeldvenster daar een meting uit.
 - Gemma 4 (`@cf/google/gemma-4-26b-a4b-it`) gaf geen bruikbaar JSON-antwoord en is daarom uit de modellijst gehaald.
 - **Vercel Hobby** is voor niet-commercieel gebruik. Gaat de site geld verdienen, dan is Pro nodig.
 
