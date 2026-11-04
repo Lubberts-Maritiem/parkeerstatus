@@ -18,6 +18,7 @@ The image is a composite of three photos from the same fixed camera:
 
 Task: estimate how full the parking area is in the CURRENT image, on a scale where the EMPTY reference is 0 and the FULL reference is 100.
 Rules:
+- Flat grey areas are masked out on purpose. Ignore them: only the visible part is the car park.
 - Compare the parking bays in the CURRENT image with the same area in both references.
 - Only judge the parked cars. Ignore the ferry, buses, driving lanes, people and the water.
 - Cars at the back hide each other. If the back rows look as densely packed as in the FULL reference, treat them as full.
@@ -30,6 +31,7 @@ const PROMPT_ZONDER_REFERENTIE = `You are looking at a webcam image of a public 
 
 Task: estimate which percentage of the marked parking spaces is occupied by parked vehicles.
 Rules:
+- Flat grey areas are masked out on purpose. Ignore them: only the visible part is the car park.
 - Only judge the area with parked cars and marked parking spaces. Ignore the ferry, buses, driving lanes, people and the water. Open asphalt where cars drive is not parking space.
 - Cars at the back hide each other. If the back rows look densely packed, treat them as full.
 - Judge visibility: "goed", "matig" (glare, rain on the lens, dusk) or "slecht" (dark, fog, lens blocked, black or frozen image).

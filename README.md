@@ -31,11 +31,15 @@ bezoeker ─► index.html ─► /api/status (Vercel, CDN-cache 5 min)
 | `api/frame.js` | Actueel camerabeeld als JPEG |
 | `lib/camera.js` | ffmpeg: frame pakken en samenstellen |
 | `worker/worker.js` | De Cloudflare Worker (prompt, modellen, rem) |
-| `referentie/` | `leeg.jpg` en `vol.jpg` |
+| `referentie/` | `masker.png` (wat het model wel en niet ziet), `leeg.jpg` en `vol.jpg` |
 
 ## Worker aanpassen
 
 De Worker staat in Cloudflare onder **Workers & Pages → parkeerstatus-ai**. Wijzig je `worker/worker.js`, plak de nieuwe code dan via **Edit code** en klik **Deploy**. De Worker heeft één binding nodig: **Workers AI**, variabelenaam `AI`.
+
+## Masker
+
+`referentie/masker.png` (1280x720, wit = parkeerterrein) knipt lucht, water, veerboot, stoep en randen weg. Alleen het kader rond het witte deel gaat naar het model (`UITSNEDE` in `lib/camera.js`). Referentiefoto's krijgen hetzelfde masker. Verandert de camerahoek, maak dan een nieuw masker en pas `UITSNEDE` aan.
 
 ## Referentiefoto's (sterk aangeraden)
 
