@@ -3,7 +3,7 @@
 // minuten bewaren. Hoeveel bezoekers er ook zijn: de Worker wordt hooguit eens per
 // interval aangeroepen, en de Worker remt zelf ook nog af.
 
-const WORKER_URL = process.env.WORKER_URL || 'https://parkeerstatus-ai.WORKERS_SUBDOMEIN.workers.dev/status';
+const WORKER_URL = process.env.WORKER_URL || 'https://parkeerstatus-ai.p-j-lubberts.workers.dev/status';
 const INTERVAL_DAG = Number(process.env.MEET_INTERVAL_SEC || 240);   // 4 minuten
 const INTERVAL_NACHT = Number(process.env.NACHT_INTERVAL_SEC || 1800); // 30 minuten
 const NACHT_VAN = Number(process.env.NACHT_VAN || 23);
