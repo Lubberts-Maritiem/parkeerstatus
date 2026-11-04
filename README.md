@@ -1,67 +1,68 @@
 # Parkeren op de Haven
 
-Indicatieve parkeerdrukte op het Veerhavenplein, West-Terschelling. Volledig gratis te draaien op **Vercel (Hobby)** plus het gratis dagtegoed van **Cloudflare Workers AI**.
+Indicatieve parkeerdrukte op het Veerhavenplein, West-Terschelling. Volledig gratis: **Vercel (Hobby)** voor de site en het camerabeeld, een **Cloudflare Worker** met het gratis dagtegoed van **Workers AI** voor het oordeel. Er is nergens een API-sleutel nodig.
 
 ## Hoe het werkt
 
-1. `index.html` toont de livestream van de havencamera en een statuskaart: rustig, gemiddeld, druk of vol.
-2. De pagina vraagt elke minuut `/api/status` op.
-3. `/api/status` pakt met ffmpeg één frame uit de stream, zet het onder twee referentiefoto's (leeg en vol) en vraagt een vision-model op Cloudflare: *waar zit dit beeld tussen leeg (0) en vol (100)?*
-4. Vercel's CDN bewaart het antwoord 4 minuten (`s-maxage`). Hoeveel bezoekers er ook zijn, de meting draait hooguit eens per 4 minuten. 's Nachts (23:00 tot 06:00) eens per 30 minuten.
-5. Valt de livestream weg, dan toont de pagina het frame van de laatste meting. Mislukt een meting, dan blijft de laatste geslaagde meting staan met een melding.
+```
+bezoeker ─► index.html ─► /api/status (Vercel, CDN-cache 4 min)
+                               │
+                               ▼
+                    Cloudflare Worker (AI-binding)
+                               │ haalt zelf het beeld op
+                               ▼
+                     /api/beeld (Vercel, ffmpeg)
+                     actueel frame + referenties leeg/vol
+```
 
-Geen database, geen cron, geen eigen server.
+1. `index.html` toont de livestream en een statuskaart: rustig, gemiddeld, druk of vol.
+2. `/api/status` vraagt het oordeel op bij de Worker. Vercel's CDN bewaart het 4 minuten, 's nachts (23:00 tot 06:00) 30 minuten.
+3. De Worker haalt `/api/beeld` op: het actuele frame, met de referentiefoto's leeg en vol erboven als die er zijn. Een vision-model zegt waar het beeld zit tussen leeg (0) en vol (100).
+4. De Worker gebruikt de **AI-binding** van Cloudflare, dus geen token. Hij accepteert geen eigen invoer, haalt alleen het beeld van de vaste Vercel-URL, en meet hooguit eens per 2,5 minuut. Zo kan niemand je gratis tegoed opmaken.
+5. Speelt de livestream niet af, dan toont de pagina een stilstaand frame via `/api/frame` dat elke minuut ververst. Mislukt een meting, dan blijft de laatste geslaagde meting staan met een melding.
 
-## In gebruik nemen (ongeveer 20 minuten)
+## Onderdelen
 
-### 1. Cloudflare (gratis)
+| Bestand | Wat |
+|---|---|
+| `index.html` | De site |
+| `api/status.js` | Doorgeefluik naar de Worker, met CDN-cache |
+| `api/beeld.js` | Samengesteld beeld voor de beoordeling |
+| `api/frame.js` | Actueel camerabeeld als JPEG |
+| `lib/camera.js` | ffmpeg: frame pakken en samenstellen |
+| `worker/worker.js` | De Cloudflare Worker (prompt, modellen, rem) |
+| `referentie/` | `leeg.jpg` en `vol.jpg` |
 
-1. Maak een gratis account op [dash.cloudflare.com](https://dash.cloudflare.com).
-2. Noteer je **Account ID**: staat op de overzichtspagina van je account (rechterkolom), of in de URL na `dash.cloudflare.com/`.
-3. Ga naar **My Profile → API Tokens → Create Token** en kies het sjabloon **Workers AI**. Noteer het token.
+## Worker aanpassen
 
-### 2. GitHub
+De Worker staat in Cloudflare onder **Workers & Pages → parkeerstatus-ai**. Wijzig je `worker/worker.js`, plak de nieuwe code dan via **Edit code** en klik **Deploy**. De Worker heeft één binding nodig: **Workers AI**, variabelenaam `AI`.
 
-Zet deze map in een nieuwe repository. `node_modules` hoort er niet in (staat in `.gitignore`).
+## Referentiefoto's (sterk aangeraden)
 
-### 3. Vercel (gratis Hobby-plan)
+Zonder referenties werkt het ook, maar het model schat dan op eigen inzicht.
 
-1. **Add New → Project**, importeer de repository. Framework: *Other*. Build- en outputinstellingen leeg laten.
-2. Voeg bij **Environment Variables** toe:
-   - `CF_ACCOUNT_ID` = je Cloudflare Account ID
-   - `CF_API_TOKEN` = het Workers AI-token
-3. **Deploy.**
+1. Open `https://<jouw-site>/api/frame` op een **rustig** moment en sla het beeld op als `referentie/leeg.jpg`.
+2. Doe hetzelfde als het terrein **vol** staat: `referentie/vol.jpg`.
+3. Commit en push. Vercel deployt vanzelf.
 
-Controleer daarna `https://<jouw-site>/api/status`. Je hoort JSON te zien met `"ok": true`.
+Kies daglicht en goed zicht. Verandert de camerahoek, maak dan nieuwe.
 
-### 4. Referentiefoto's maken (sterk aangeraden)
-
-Zonder referenties werkt het ook, maar het model schat dan op eigen inzicht. Met referenties vergelijkt het en wordt het oordeel veel stabieler.
-
-1. Open `https://<jouw-site>/api/frame` op een **rustig** moment (bijvoorbeeld vroeg in de ochtend buiten het seizoen). Sla het beeld op als `referentie/leeg.jpg`.
-2. Doe hetzelfde op een moment dat het terrein **vol** staat. Sla op als `referentie/vol.jpg`.
-3. Commit en push. Vercel deployt vanzelf opnieuw.
-
-Kies referenties bij daglicht en goed zicht. Verandert de camerahoek ooit, maak dan nieuwe.
-
-## Instellingen (optioneel, via Environment Variables)
+## Instellingen (optioneel, Environment Variables in Vercel)
 
 | Variabele | Standaard | Wat het doet |
 |---|---|---|
+| `WORKER_URL` | in `api/status.js` | Adres van de Worker |
 | `STREAM_URL` | Veerkade-stream | HLS-playlist van de camera |
-| `CF_MODEL` | `@cf/google/gemma-4-26b-a4b-it` | Vision-model op Workers AI |
-| `CF_MODEL_RESERVE` | `@cf/meta/llama-4-scout-17b-16e-instruct` | Tweede poging als het hoofdmodel faalt |
-| `MEET_INTERVAL_SEC` | `240` | Meetinterval overdag |
-| `NACHT_INTERVAL_SEC` | `1800` | Meetinterval 's nachts |
+| `MEET_INTERVAL_SEC` | `240` | Cache-duur overdag |
+| `NACHT_INTERVAL_SEC` | `1800` | Cache-duur 's nachts |
 | `NACHT_VAN` / `NACHT_TOT` | `23` / `6` | Nachtvenster (Nederlandse tijd) |
 
-Niveaus: rustig < 35%, gemiddeld < 65%, druk < 85%, vol vanaf 85%. Bij slecht zicht (donker, mist, storing) toont de site "Onbekend" in plaats van een gok. Aan te passen in `lib/oordeel.js`.
+Niveaus: rustig < 35%, gemiddeld < 65%, druk < 85%, vol vanaf 85%. Bij slecht zicht toont de site "Onbekend". Aan te passen in `worker/worker.js`.
 
 ## Gratis blijven
 
-- **Cloudflare:** 10.000 neurons per dag gratis. Kijk na de eerste dag bij *Workers AI* in het dashboard hoeveel er verbruikt is. Komt het in de buurt van de grens, zet `MEET_INTERVAL_SEC` op `300` of `360`. Gaat het tegoed op, dan toont de site de laatste meting tot middernacht (UTC).
-- **Vercel Hobby** is bedoeld voor niet-commercieel gebruik. Gaat de site geld verdienen (advertenties, sponsoring), dan is het Pro-plan nodig.
-- De CDN-cache van Vercel werkt per regio. Komen bezoekers via meerdere regio's binnen, dan kan er iets vaker gemeten worden. Voor een Nederlands publiek speelt dat nauwelijks.
+- **Cloudflare:** 10.000 neurons per dag gratis. Kijk na de eerste dag bij *Workers AI* hoeveel er verbruikt is. Te veel? Verhoog `MIN_INTERVAL_MS` in de Worker en `MEET_INTERVAL_SEC` in Vercel.
+- **Vercel Hobby** is voor niet-commercieel gebruik. Gaat de site geld verdienen, dan is Pro nodig.
 
 ## Bekende valkuil (al opgelost)
 
@@ -69,9 +70,5 @@ De statische ffmpeg-build crasht (segfault) als hij de tekenset-modules van het 
 
 ## Nog te regelen voor livegang
 
-- **Toestemming van de camera-eigenaar** voor hergebruik van het beeld, en de juiste naamsvermelding in de footer (`id="bron"` in `index.html`).
+- **Toestemming van de camera-eigenaar** en de juiste naamsvermelding in de footer (`id="bron"` in `index.html`).
 - Een paar dagen naast de werkelijkheid leggen: klopt "druk" met wat je op de kade ziet?
-
-## Lokaal testen
-
-Er is geen build-stap. Met de Vercel CLI: `npm install`, dan `vercel dev` met de twee Cloudflare-variabelen in `.env.local`.
