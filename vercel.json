@@ -1,0 +1,11 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "regions": ["fra1"],
+  "functions": {
+    "api/*.js": {
+      "maxDuration": 60,
+      "memory": 1024,
+      "includeFiles": "{node_modules/ffmpeg-static/ffmpeg,referentie/**}"
+    }
+  }
+}

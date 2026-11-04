@@ -1,0 +1,6 @@
+Zet hier twee foto's van de camera neer (haal ze op via /api/frame op je site):
+
+  leeg.jpg  - het terrein (bijna) leeg, bij daglicht
+  vol.jpg   - het terrein vol, bij daglicht
+
+Ontbreken ze, dan werkt de site ook, maar minder nauwkeurig.

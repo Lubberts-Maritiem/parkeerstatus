@@ -1,0 +1,13 @@
+{
+  "name": "parkeerstatus-veerhavenplein",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Indicatieve parkeerdrukte Veerhavenplein, West-Terschelling. Camerabeeld beoordeeld door een gratis vision-model.",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "ffmpeg-static": "^5.2.0"
+  }
+}

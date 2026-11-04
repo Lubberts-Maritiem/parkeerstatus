@@ -1,0 +1,262 @@
+<!doctype html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parkeren op de Haven</title>
+<meta name="description" content="Hoe druk is het op het Veerhavenplein in West-Terschelling? Live camerabeeld en indicatie van de parkeerdrukte.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f3f1ec;
+    --panel: #ffffff;
+    --ink: #13212e;
+    --muted: #5d6b78;
+    --line: #dcd8cf;
+    --sea: #0f4c5c;
+    --rustig: #1f8a4c;
+    --gemiddeld: #a87b00;
+    --druk: #c4560f;
+    --vol: #b3261e;
+    --onbekend: #6b7280;
+    --shadow: 0 1px 2px rgba(19,33,46,.06), 0 8px 24px rgba(19,33,46,.06);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0d1820;
+      --panel: #142430;
+      --ink: #e8eef2;
+      --muted: #94a5b3;
+      --line: #23394a;
+      --sea: #7cc4d4;
+      --rustig: #4ade80;
+      --gemiddeld: #facc15;
+      --druk: #fb923c;
+      --vol: #f87171;
+      --onbekend: #9ca3af;
+      --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0d1820; --panel: #142430; --ink: #e8eef2; --muted: #94a5b3; --line: #23394a;
+    --sea: #7cc4d4; --rustig: #4ade80; --gemiddeld: #facc15; --druk: #fb923c; --vol: #f87171;
+    --onbekend: #9ca3af; --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    background: var(--bg);
+    color: var(--ink);
+    font: 16px/1.5 Inter, system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 40px; }
+
+  header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+  h1 { font-family: Fraunces, Georgia, serif; font-weight: 800; font-size: clamp(26px, 5vw, 36px); letter-spacing: -.01em; margin: 0; color: var(--sea); }
+  .plaats { color: var(--muted); font-size: 15px; }
+
+  .grid { display: grid; gap: 16px; grid-template-columns: 1fr; }
+  @media (min-width: 880px) { .grid { grid-template-columns: 340px 1fr; align-items: start; } }
+
+  .kaart { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+
+  /* Statuskaart */
+  .status { padding: 22px 22px 20px; position: relative; overflow: hidden; }
+  .status::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 6px; background: var(--kleur, var(--onbekend)); }
+  .label { font-size: 13px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+  .niveau { font-family: Fraunces, Georgia, serif; font-weight: 800; font-size: clamp(44px, 11vw, 60px); line-height: 1.05; margin: 6px 0 4px; color: var(--kleur, var(--onbekend)); }
+  .zin { margin: 0 0 18px; font-size: 17px; }
+
+  .meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-bottom: 6px; }
+  .meter span { height: 10px; border-radius: 3px; background: var(--line); transition: background .3s; }
+  .meter span.aan { background: var(--kleur); }
+  .schaal { display: grid; grid-template-columns: repeat(4, 1fr); font-size: 12px; color: var(--muted); margin-bottom: 18px; }
+  .schaal span:nth-child(n+2) { text-align: center; }
+  .schaal span:last-child { text-align: right; }
+
+  .toelichting { font-size: 15px; color: var(--muted); border-left: 3px solid var(--line); padding-left: 10px; margin: 0 0 16px; min-height: 1.5em; }
+  .melding { display: none; font-size: 14px; background: color-mix(in srgb, var(--gemiddeld) 14%, transparent); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
+  .melding.zichtbaar { display: block; }
+  .tijd { font-size: 13px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+
+  /* Camera */
+  .camera { overflow: hidden; }
+  .beeld { position: relative; aspect-ratio: 16 / 9; background: #0b141b; }
+  .beeld video, .beeld img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .beeld img { display: none; }
+  .beeld.stil video { display: none; }
+  .beeld.stil img { display: block; }
+  .badge { position: absolute; top: 12px; left: 12px; display: inline-flex; align-items: center; gap: 7px; background: rgba(8,15,21,.72); color: #fff; font-size: 12px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 5px 10px; border-radius: 999px; }
+  .badge i { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: puls 1.6s infinite; }
+  .beeld.stil .badge i { background: #9ca3af; animation: none; }
+  @keyframes puls { 50% { opacity: .35; } }
+  .bijschrift { padding: 12px 16px; font-size: 14px; color: var(--muted); }
+
+  footer { margin-top: 22px; font-size: 13px; color: var(--muted); max-width: 70ch; }
+  footer p { margin: 0 0 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Parkeren op de Haven</h1>
+    <div class="plaats">Veerhavenplein, West-Terschelling</div>
+  </header>
+
+  <main class="grid">
+    <section class="kaart status" id="status" aria-live="polite">
+      <div class="label">Nu op de kade</div>
+      <div class="niveau" id="niveau">Even kijken…</div>
+      <p class="zin" id="zin">De laatste meting wordt opgehaald.</p>
+
+      <div class="meter" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+      <div class="schaal" aria-hidden="true"><span>Rustig</span><span>Gemiddeld</span><span>Druk</span><span>Vol</span></div>
+
+      <div class="melding" id="melding"></div>
+      <p class="toelichting" id="toelichting"></p>
+      <div class="tijd"><span id="gemeten">&nbsp;</span><span id="volgende"></span></div>
+    </section>
+
+    <section class="kaart camera">
+      <div class="beeld" id="beeld">
+        <video id="video" muted playsinline autoplay></video>
+        <img id="stilbeeld" alt="Laatste camerabeeld van het Veerhavenplein">
+        <div class="badge"><i></i><span id="badgetekst">Live</span></div>
+      </div>
+      <div class="bijschrift" id="bijschrift">Live camerabeeld van de parkeerplaats aan de Veerkade.</div>
+    </section>
+  </main>
+
+  <footer>
+    <p>De drukte is een <strong>indicatie</strong>: een AI-model vergelijkt het camerabeeld elke paar minuten met een foto van een leeg en een vol terrein. De camera laat niet de hele kade zien. Aan deze informatie kunnen geen rechten worden ontleend.</p>
+    <p id="bron">Camerabeeld: met dank aan de eigenaar van de havencamera.</p>
+  </footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/hls.js/1.5.13/hls.min.js"></script>
+<script>
+(() => {
+  const STREAM = 'https://5b8d2cbe62ad6.streamlock.net/live/veerkade.stream/playlist.m3u8';
+  const OPSLAG = 'parkeerstatus:laatste';
+  const NIVEAUS = {
+    rustig:    { titel: 'Rustig',    zin: 'Er is volop plek.',                 stap: 1 },
+    gemiddeld: { titel: 'Gemiddeld', zin: 'Er is nog plek, maar het loopt vol.', stap: 2 },
+    druk:      { titel: 'Druk',      zin: 'Nog maar weinig plek over.',          stap: 3 },
+    vol:       { titel: 'Vol',       zin: 'Het terrein staat (bijna) vol.',      stap: 4 },
+    onbekend:  { titel: 'Onbekend',  zin: 'Het beeld is nu niet goed te beoordelen.', stap: 0 },
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const kaart = $('status');
+  const beeld = $('beeld');
+  const video = $('video');
+  let laatste = null;
+
+  // ---------- Livestream ----------
+  function naarStilbeeld() {
+    beeld.classList.add('stil');
+    $('badgetekst').textContent = 'Stilstaand beeld';
+    $('bijschrift').textContent = laatste?.beeld
+      ? 'De livestream is even niet bereikbaar. Je ziet het beeld van de laatste meting.'
+      : 'De livestream is even niet bereikbaar.';
+    if (laatste?.beeld) $('stilbeeld').src = laatste.beeld;
+  }
+  function naarLive() {
+    beeld.classList.remove('stil');
+    $('badgetekst').textContent = 'Live';
+    $('bijschrift').textContent = 'Live camerabeeld van de parkeerplaats aan de Veerkade.';
+  }
+
+  function startStream() {
+    if (window.Hls && Hls.isSupported()) {
+      const hls = new Hls({ liveSyncDurationCount: 2, maxBufferLength: 20 });
+      let herstel = 0;
+      hls.loadSource(STREAM);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => { video.play().catch(() => {}); });
+      hls.on(Hls.Events.FRAG_LOADED, () => { herstel = 0; naarLive(); });
+      hls.on(Hls.Events.ERROR, (_e, d) => {
+        if (!d.fatal) return;
+        naarStilbeeld();
+        if (herstel++ < 5) setTimeout(() => {
+          if (d.type === Hls.ErrorTypes.MEDIA_ERROR) hls.recoverMediaError();
+          else hls.startLoad();
+        }, 5000 * herstel);
+      });
+    } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+      video.src = STREAM; // Safari / iOS
+      video.addEventListener('playing', naarLive);
+      video.addEventListener('error', naarStilbeeld);
+    } else {
+      naarStilbeeld();
+    }
+  }
+
+  // ---------- Status ----------
+  function geleden(iso) {
+    const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+    if (min < 1) return 'zojuist';
+    if (min === 1) return '1 minuut geleden';
+    if (min < 60) return `${min} minuten geleden`;
+    const u = Math.round(min / 60);
+    return u === 1 ? '1 uur geleden' : `${u} uur geleden`;
+  }
+
+  function toon(s, verouderd) {
+    const n = NIVEAUS[s.niveau] || NIVEAUS.onbekend;
+    kaart.style.setProperty('--kleur', `var(--${s.niveau in NIVEAUS ? s.niveau : 'onbekend'})`);
+    $('niveau').textContent = n.titel;
+    $('zin').textContent = n.zin;
+    document.querySelectorAll('.meter span').forEach((el, i) => el.classList.toggle('aan', i < n.stap));
+    $('toelichting').textContent = s.toelichting || '';
+
+    const m = $('melding');
+    let tekst = '';
+    if (verouderd) tekst = 'De nieuwste meting lukte niet. Je ziet de laatste geslaagde meting.';
+    else if (s.zicht === 'matig') tekst = 'Het zicht is matig (tegenlicht, regen of schemer). Neem de indicatie met een korrel zout.';
+    else if (s.niveau === 'onbekend') tekst = 'Donker, mist of een storing aan de camera. Probeer het later nog eens.';
+    m.textContent = tekst;
+    m.classList.toggle('zichtbaar', !!tekst);
+
+    $('gemeten').textContent = s.gemeten_op ? `Gemeten ${geleden(s.gemeten_op)}` : '';
+    $('volgende').textContent = s.interval_s ? `ververst elke ${Math.round(s.interval_s / 60)} min` : '';
+    if (beeld.classList.contains('stil') && s.beeld) $('stilbeeld').src = s.beeld;
+  }
+
+  function bewaar(s) { try { localStorage.setItem(OPSLAG, JSON.stringify(s)); } catch {} }
+  function haalBewaard() { try { return JSON.parse(localStorage.getItem(OPSLAG) || 'null'); } catch { return null; } }
+
+  async function ververs() {
+    try {
+      const r = await fetch('/api/status');
+      const s = await r.json();
+      if (s.ok) {
+        laatste = s;
+        bewaar(s);
+        toon(s, false);
+      } else if (laatste) {
+        toon(laatste, true);
+      } else {
+        toon({ niveau: 'onbekend', interval_s: s.interval_s }, false);
+      }
+    } catch {
+      if (laatste) toon(laatste, true);
+      else toon({ niveau: 'onbekend' }, false);
+    }
+  }
+
+  laatste = haalBewaard();
+  if (laatste) toon(laatste, false);
+  startStream();
+  ververs();
+  setInterval(ververs, 60000);
+  setInterval(() => { if (laatste?.gemeten_op) $('gemeten').textContent = `Gemeten ${geleden(laatste.gemeten_op)}`; }, 30000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) ververs(); });
+})();
+</script>
+</body>
+</html>
