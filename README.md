@@ -76,5 +76,5 @@ De statische ffmpeg-build crasht (segfault) als hij de tekenset-modules van het 
 
 ## Nog te regelen voor livegang
 
-- **Toestemming van de camera-eigenaar** en de juiste naamsvermelding in de footer (`id="bron"` in `index.html`).
+- **Toestemming van de camera-eigenaar** (Heel Holland Kijkt, via hun contactpagina). De naamsvermelding staat op de site: onder het camerabeeld en in de footer.
 - Een paar dagen naast de werkelijkheid leggen: klopt "druk" met wat je op de kade ziet?

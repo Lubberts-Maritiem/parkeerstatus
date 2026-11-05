@@ -98,6 +98,11 @@
 
   footer { margin-top: 22px; font-size: 13px; color: var(--muted); max-width: 70ch; }
   footer p { margin: 0 0 8px; }
+  footer a, .credit a { color: var(--sea); font-weight: 600; text-underline-offset: 2px; }
+
+  .credit { border-top: 1px solid var(--line); padding: 12px 16px 14px; font-size: 14px; line-height: 1.5;
+            background: color-mix(in srgb, var(--sea) 7%, transparent); }
+  .credit-label { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 2px; }
 </style>
 </head>
 <body>
@@ -128,12 +133,19 @@
         <div class="badge"><i></i><span id="badgetekst">Live</span></div>
       </div>
       <div class="bijschrift" id="bijschrift">Live camerabeeld van de parkeerplaats aan de Veerkade.</div>
+      <div class="credit">
+        <span class="credit-label">Camerabeeld</span>
+        Deze site bestaat dankzij de webcams van
+        <a href="https://www.webcam-brandaris.nl/" target="_blank" rel="noopener">Webcam-Brandaris.nl</a>
+        van <a href="https://www.heelhollandkijkt.nl/" target="_blank" rel="noopener">Heel Holland Kijkt</a>.
+        Veel dank daarvoor!
+      </div>
     </section>
   </main>
 
   <footer>
     <p>De drukte is een <strong>indicatie</strong>: een AI-model vergelijkt het camerabeeld elke paar minuten met een foto van een leeg en een vol terrein. De camera laat niet de hele kade zien. Aan deze informatie kunnen geen rechten worden ontleend.</p>
-    <p id="bron">Camerabeeld: met dank aan de eigenaar van de havencamera.</p>
+    <p id="bron">Het camerabeeld is afkomstig van de Veerkade-camera van <a href="https://www.webcam-brandaris.nl/" target="_blank" rel="noopener">Webcam-Brandaris.nl</a>, onderdeel van <a href="https://www.heelhollandkijkt.nl/" target="_blank" rel="noopener">Heel Holland Kijkt</a>. Zonder hun camera's zou deze site niet kunnen bestaan. Kijk ook eens op hun site voor alle andere beelden van Terschelling.</p>
   </footer>
 </div>
 
