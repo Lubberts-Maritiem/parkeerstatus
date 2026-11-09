@@ -44,7 +44,7 @@ The image is a composite of two photos of the SAME car park, taken at the same m
 - TOP strip: the main camera, close by and sharp.
 - BOTTOM strip: a second camera on the other side of the harbour, further away and blurrier. It shows the same block of parking spaces from the opposite direction.
 
-Task: first count the free parking spaces you can see in both strips together. Then estimate which percentage of the marked parking spaces of the whole car park is occupied. The car park has about 125 marked spaces, so 20 free spaces means roughly 84 percent occupied.
+Task: first count the free parking spaces you can see in both strips together. Then estimate which percentage of the marked parking spaces of the whole car park is occupied. The car park has about 125 marked spaces, so the occupied percentage is roughly 100 x (125 - free spaces) / 125.
 Rules:
 - Both strips show the same parked cars. Combine them into ONE estimate. Do not add the two views up, and do not average two separate estimates.
 - Cars at the back of the TOP strip hide each other. Use the BOTTOM strip to see whether there are gaps between them: a free space that is hidden in one strip is often visible in the other.
