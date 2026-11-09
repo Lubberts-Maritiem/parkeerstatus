@@ -102,7 +102,7 @@
 
   /* Havenkom: alleen het parkeervlak linksonder in het beeld (x 0-520, y 376-526 van 1280x720).
      De video is 1280/520 = 246,15% breed en 720/150 = 480% hoog, en schuift 376/150 = 250,67% omhoog. */
-  .beeld.uitsnede { aspect-ratio: 520 / 150; }
+  .beeld.uitsnede { aspect-ratio: 520 / 150; overflow: hidden; }
   .beeld.uitsnede video, .beeld.uitsnede img {
     inset: auto; left: 0; top: -250.667%; width: 246.154%; height: 480%; max-width: none; object-fit: fill;
   }
