@@ -7,7 +7,9 @@ import { huidigFrame } from '../lib/camera.js';
 
 export default async function handler(req, res) {
   try {
-    const jpeg = await huidigFrame();
+    // ?cam=havenkom geeft het frame van de tweede camera (stilstaand beeld op de site).
+    const havenkom = new URL(req.url, 'http://x').searchParams.get('cam') === 'havenkom';
+    const jpeg = await huidigFrame({ havenkom });
     res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60');
     res.status(200).send(jpeg);

@@ -25,7 +25,7 @@ Rules:
 - Judge visibility of the CURRENT image: "goed", "matig" (glare, rain on the lens, dusk) or "slecht" (dark, fog, lens blocked, black or frozen image).
 
 Answer with ONLY this JSON object and nothing else:
-{"bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
+{"vrije_plekken": <integer, free spaces you can see>, "bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
 
 const PROMPT_ZONDER_REFERENTIE = `You are looking at a webcam image of a public car park on a harbour quay (Veerhavenplein, West-Terschelling, the Netherlands).
 
@@ -37,23 +37,24 @@ Rules:
 - Judge visibility: "goed", "matig" (glare, rain on the lens, dusk) or "slecht" (dark, fog, lens blocked, black or frozen image).
 
 Answer with ONLY this JSON object and nothing else:
-{"bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
+{"vrije_plekken": <integer, free spaces you can see>, "bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
 
 const PROMPT_TWEE_CAMERAS = `You are looking at webcam images of a public car park on a harbour quay (Veerhavenplein, West-Terschelling, the Netherlands).
 The image is a composite of two photos of the SAME car park, taken at the same moment from opposite sides, separated by a thin black line:
 - TOP strip: the main camera, close by and sharp.
 - BOTTOM strip: a second camera on the other side of the harbour, further away and blurrier. It shows the same block of parking spaces from the opposite direction.
 
-Task: estimate which percentage of the marked parking spaces of the whole car park is occupied by parked vehicles.
+Task: first count the free parking spaces you can see in both strips together. Then estimate which percentage of the marked parking spaces of the whole car park is occupied. The car park has about 125 marked spaces, so 20 free spaces means roughly 84 percent occupied.
 Rules:
 - Both strips show the same parked cars. Combine them into ONE estimate. Do not add the two views up, and do not average two separate estimates.
 - Cars at the back of the TOP strip hide each other. Use the BOTTOM strip to see whether there are gaps between them: a free space that is hidden in one strip is often visible in the other.
 - Flat grey areas are masked out on purpose. Ignore them.
-- Only judge the parking rows. Ignore the ferry, buses, people and the water. Open asphalt where cars drive and the quay edge with bollards are not parking space, so empty asphalt there does not mean free spaces.
+- Only judge the parking area. Ignore the ferry, buses, people and the water. An empty bay is a FREE space, even when from a distance it looks like plain asphalt with a few cars around it. Count every gap in or next to the parking rows where a car could park. Only the driving lane between the rows is not parking space.
+- A free space that you see in only one of the two strips still counts.
 - Judge visibility: "goed", "matig" (glare, rain on the lens, dusk) or "slecht" (dark, fog, lens blocked, black or frozen image). If only the BOTTOM strip is unusable, judge from the TOP strip and keep visibility at most "matig".
 
 Answer with ONLY this JSON object and nothing else:
-{"bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
+{"vrije_plekken": <integer, free spaces you can see>, "bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
 
 const ZICHT = new Set(['goed', 'matig', 'slecht']);
 const ZEKERHEID = new Set(['hoog', 'middel', 'laag']);
@@ -73,6 +74,7 @@ export function leesAntwoord(tekst) {
           zicht: ZICHT.has(o.zicht) ? o.zicht : 'matig',
           zekerheid: ZEKERHEID.has(o.zekerheid) ? o.zekerheid : 'laag',
           toelichting: String(o.toelichting || '').slice(0, 240),
+          vrije_plekken: Number.isFinite(Number(o.vrije_plekken)) ? Math.max(0, Math.round(Number(o.vrije_plekken))) : undefined,
         };
       }
     } catch {
