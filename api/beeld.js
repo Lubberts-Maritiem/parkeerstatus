@@ -7,9 +7,10 @@ import { beeldenVoorMeting } from '../lib/camera.js';
 
 export default async function handler(req, res) {
   try {
-    const { metReferentie, beoordeling } = await beeldenVoorMeting();
+    const { metReferentie, metHavenkom, beoordeling } = await beeldenVoorMeting();
     res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('X-Met-Referentie', metReferentie ? '1' : '0');
+    res.setHeader('X-Met-Havenkom', metHavenkom ? '1' : '0');
     res.setHeader('Cache-Control', 'public, max-age=0, s-maxage=60');
     res.status(200).send(beoordeling);
   } catch (fout) {

@@ -39,6 +39,22 @@ Rules:
 Answer with ONLY this JSON object and nothing else:
 {"bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
 
+const PROMPT_TWEE_CAMERAS = `You are looking at webcam images of a public car park on a harbour quay (Veerhavenplein, West-Terschelling, the Netherlands).
+The image is a composite of two photos of the SAME car park, taken at the same moment from opposite sides, separated by a thin black line:
+- TOP strip: the main camera, close by and sharp.
+- BOTTOM strip: a second camera on the other side of the harbour, further away and blurrier. It shows the same block of parking spaces from the opposite direction.
+
+Task: estimate which percentage of the marked parking spaces of the whole car park is occupied by parked vehicles.
+Rules:
+- Both strips show the same parked cars. Combine them into ONE estimate. Do not add the two views up, and do not average two separate estimates.
+- Cars at the back of the TOP strip hide each other. Use the BOTTOM strip to see whether there are gaps between them: a free space that is hidden in one strip is often visible in the other.
+- Flat grey areas are masked out on purpose. Ignore them.
+- Only judge the parking rows. Ignore the ferry, buses, people and the water. Open asphalt where cars drive and the quay edge with bollards are not parking space, so empty asphalt there does not mean free spaces.
+- Judge visibility: "goed", "matig" (glare, rain on the lens, dusk) or "slecht" (dark, fog, lens blocked, black or frozen image). If only the BOTTOM strip is unusable, judge from the TOP strip and keep visibility at most "matig".
+
+Answer with ONLY this JSON object and nothing else:
+{"bezetting_pct": <integer 0-100>, "zicht": "goed" | "matig" | "slecht", "zekerheid": "hoog" | "middel" | "laag", "toelichting": "<one short sentence in Dutch about what you see>"}`;
+
 const ZICHT = new Set(['goed', 'matig', 'slecht']);
 const ZEKERHEID = new Set(['hoog', 'middel', 'laag']);
 
@@ -93,8 +109,9 @@ async function meet(env) {
   const r = await fetch(`${BEELD_URL}?t=${Date.now()}`, { cf: { cacheTtl: 0 } });
   if (!r.ok) throw new Error(`Camerabeeld niet beschikbaar (${r.status})`);
   const metReferentie = r.headers.get('x-met-referentie') === '1';
+  const metHavenkom = !metReferentie && r.headers.get('x-met-havenkom') === '1';
   const dataUrl = `data:image/jpeg;base64,${naarBase64(await r.arrayBuffer())}`;
-  const prompt = metReferentie ? PROMPT_MET_REFERENTIE : PROMPT_ZONDER_REFERENTIE;
+  const prompt = metReferentie ? PROMPT_MET_REFERENTIE : metHavenkom ? PROMPT_TWEE_CAMERAS : PROMPT_ZONDER_REFERENTIE;
 
   const fouten = [];
   for (const model of MODELLEN) {
@@ -113,7 +130,7 @@ async function meet(env) {
         ],
       });
       const oordeel = leesAntwoord(tekstUit(out));
-      return { ok: true, niveau: niveau(oordeel), ...oordeel, model, met_referentie: metReferentie, opmerking: fouten.length ? fouten.join(' | ') : undefined };
+      return { ok: true, niveau: niveau(oordeel), ...oordeel, model, met_referentie: metReferentie, met_havenkom: metHavenkom, opmerking: fouten.length ? fouten.join(' | ') : undefined };
     } catch (e) {
       fouten.push(`${model.split('/').pop()}: ${String(e?.message || e).slice(0, 140)}`);
     }

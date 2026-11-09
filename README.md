@@ -57,6 +57,8 @@ Kies daglicht en goed zicht. Verandert de camerahoek, maak dan nieuwe.
 |---|---|---|
 | `WORKER_URL` | in `api/status.js` | Adres van de Worker |
 | `STREAM_URL` | Veerkade-stream | HLS-playlist van de camera |
+| `STREAM_URL_HAVENKOM` | Havenkom-stream | Tweede camera, andere kant van hetzelfde terrein. Valt hij weg, dan meet de site met alleen de Veerkade |
+| `FFMPEG_PATH` | ffmpeg-static | Alleen voor lokaal testen met een eigen ffmpeg |
 | `MEET_INTERVAL_SEC` | `300` | Cache-duur overdag |
 | `NACHT_INTERVAL_SEC` | `1800` | Cache-duur 's nachts |
 | `NACHT_VAN` / `NACHT_TOT` | `23` / `6` | Nachtvenster (Nederlandse tijd) |
