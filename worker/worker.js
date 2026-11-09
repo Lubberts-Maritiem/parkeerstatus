@@ -106,7 +106,7 @@ function tekstUit(out) {
 }
 
 async function meet(env) {
-  const r = await fetch(`${BEELD_URL}?t=${Date.now()}`, { cf: { cacheTtl: 0 } });
+  const r = await fetch(`${BEELD_URL}?twee=1&t=${Date.now()}`, { cf: { cacheTtl: 0 } });
   if (!r.ok) throw new Error(`Camerabeeld niet beschikbaar (${r.status})`);
   const metReferentie = r.headers.get('x-met-referentie') === '1';
   const metHavenkom = !metReferentie && r.headers.get('x-met-havenkom') === '1';

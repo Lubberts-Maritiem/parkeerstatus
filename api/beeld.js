@@ -7,7 +7,10 @@ import { beeldenVoorMeting } from '../lib/camera.js';
 
 export default async function handler(req, res) {
   try {
-    const { metReferentie, metHavenkom, beoordeling } = await beeldenVoorMeting();
+    // ?twee=1: de Worker kent de prompt voor twee camera's en wil de Havenkom erbij.
+    // Een oudere Worker vraagt dat niet en krijgt het beeld zoals voorheen.
+    const twee = new URL(req.url, 'http://x').searchParams.get('twee') === '1';
+    const { metReferentie, metHavenkom, beoordeling } = await beeldenVoorMeting({ havenkom: twee });
     res.setHeader('Content-Type', 'image/jpeg');
     res.setHeader('X-Met-Referentie', metReferentie ? '1' : '0');
     res.setHeader('X-Met-Havenkom', metHavenkom ? '1' : '0');
